@@ -5,6 +5,9 @@ use std::time::{Duration, SystemTime};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
+use nix::sys::signal::{kill, Signal};
+use nix::unistd::Pid;
+use nix::errno::Errno;
 
 
 /// Simple heartbeat command-line app
@@ -22,6 +25,21 @@ struct Args {
     /// The command to execute
     #[clap(value_parser, trailing_var_arg = true)]
     command: Vec<String>,
+
+    #[clap(long, value_parser)]
+    pid: Option<u32>,
+
+    #[clap(long, value_parser)]
+    signal: Option<String>,
+}
+
+fn send_signal(pid: u32, signal_name: &str) -> nix::Result<()> {
+    let signal = match signal_name {
+        "USR1" => Signal::SIGUSR1,
+        "HUP" => Signal::SIGHUP,
+        _ => return Err(nix::Error::from(Errno::EINVAL)),
+    };
+    kill(Pid::from_raw(pid as i32), signal)
 }
 
 fn main() {
@@ -49,7 +67,14 @@ fn main() {
                 .output()
                 .expect("Failed to execute command")
         };
-
+        if !output.status.success() && args.pid.is_some() {
+            let pid = args.pid.unwrap();
+            let signal = args.signal.as_deref().unwrap_or("HUP");
+            if let Err(e) = send_signal(pid, signal) {
+                eprintln!("Failed to send signal: {}", e);
+                return;
+            }
+        }
         let status = match output.status.code() {
             Some(0) => String::from("OK"),
             Some(code) => format!("Failed: Exit Code {}", code),
