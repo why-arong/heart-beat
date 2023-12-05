@@ -25,10 +25,18 @@ pub fn is_executable<P: AsRef<Path>>(path: P) -> bool {
         .unwrap_or(false)
 }
 
-pub fn execute_failure_script(script_path: &String) {
-    if Path::new(script_path).exists() {
-        let _ = Command::new(script_path).status();
-    } else {
-        eprintln!("Failure script not found: {}", script_path);
+pub fn execute_failure_script(pipe_path: &Path, script_path: &str) {
+    if !is_executable(script_path) {
+        eprintln!("Error: The script '{}' is not executable.", script_path);
+        std::process::exit(1);
     }
+    Command::new(script_path)
+                .arg(pipe_path)
+                .spawn()
+                .expect("Failed to execute failure.sh");
+    // if Path::new(script_path).exists() {
+    //     let _ = Command::new(script_path).status();
+    // } else {
+    //     eprintln!("Failure script not found: {}", script_path);
+    // }
 }

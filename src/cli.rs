@@ -23,6 +23,7 @@ pub struct Args {
     #[clap(long, value_parser)]
     pub signal: Option<String>,
 
-    #[clap(long = "faill", value_parser)]
+    #[clap(long = "fail", value_parser)]
     pub failure_script: Option<String>,
+    
 }
