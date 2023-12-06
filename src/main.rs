@@ -5,12 +5,12 @@ mod executor;
 use clap::Parser;
 
 use crate::cli::Args;
-use crate::executor::{execute_command, execute_failure_script};
+use crate::executor::{execute_command, execute_failure_script, FailureScriptEnv};
 use libc;
 use crate::stat::Mode;
 
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH, Instant};
 use nix::sys::signal::{Signal, self};
 use nix::unistd::Pid;
 use nix::errno::Errno;
@@ -18,9 +18,9 @@ use nix::Result;
 use std::path::Path;
 use nix::unistd::mkfifo;
 use std::fs;
-// use std::process::Command; 
 use std::io::Write;
 use nix::sys::stat;
+
 
 fn send_signal(pid: u32, signal_name: &str) -> Result<()> {
     let signal = match signal_name {
@@ -35,7 +35,9 @@ fn send_signal(pid: u32, signal_name: &str) -> Result<()> {
 fn main() {
     let args = Args::parse();
     let interval = args.interval;
-    
+    let mut failure_count = 0;
+    let mut last_recovery_time = Instant::now();
+
     let pipe_path = Path::new("/tmp/rust_pipe");
     let _ = fs::remove_file(pipe_path);
      // Create a named pipe (FIFO)
@@ -47,20 +49,26 @@ fn main() {
 
     loop {
         let start = SystemTime::now();
-        let output = execute_command(&args);
+        let (output, fail_pid) = execute_command(&args);
         let unix_time = start.duration_since(UNIX_EPOCH).unwrap().as_secs();
         let exit_code = output.status.code().unwrap_or(1);
 
         // when command failed
         if !output.status.success() {
+            failure_count += 1;
             if args.failure_script.is_some(){
                 println!("failure_script is wrote!!");
-                execute_failure_script(pipe_path, "./failure.sh");
-                let mut pipe = fs::OpenOptions::new().write(true).open(pipe_path).expect("Failed to open the named pipe");
-                writeln!(pipe, "{} {}", exit_code, unix_time).expect("Failed to write to the named pipe");
+                let failure_env = FailureScriptEnv{
+                    exit_code,
+                    unix_time,
+                    interval,
+                    fail_pid,
+                };
+                execute_failure_script(pipe_path, "./failure.sh", failure_env);
             }
+
             if args.pid.is_some(){
-                println!("pid is wrote!!");
+                println!("pid is wrote!!"); 
                 let pid = args.pid.unwrap();
                 let signal = args.signal.as_deref().unwrap_or("HUP");
                 if let Err(e) = send_signal(pid, signal) {
@@ -68,6 +76,9 @@ fn main() {
                     return;
                 }
             }
+        } else {
+            failure_count = 0;
+
         }
 
         let status = match output.status.code() {

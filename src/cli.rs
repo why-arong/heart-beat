@@ -25,5 +25,17 @@ pub struct Args {
 
     #[clap(long = "fail", value_parser)]
     pub failure_script: Option<String>,
+
+    /// Recovery script to execute after consecutive failures
+    #[clap(long = "recovery", value_parser)]
+    pub recovery_script: Option<String>,
+
+    /// Threshold for number of consecutive failures to trigger recovery
+    #[clap(long = "threshold", value_parser)]
+    pub threshold: Option<u32>,
+
+    /// Timeout in seconds before executing the recovery script
+    #[clap(long = "recovery-timeout", value_parser)]
+    pub recovery_timeout: Option<u64>,
     
 }
