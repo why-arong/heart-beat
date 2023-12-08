@@ -6,16 +6,15 @@ use clap::Parser;
 
 use crate::cli::Args;
 use crate::executor::{execute_command, execute_failure_script, FailureScriptEnv};
-use libc;
+// use libc;
 
 use nix::sys::signal::{self, Signal};
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH, Instant};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 // use nix::sys::signal::{Signal, self};
 use nix::unistd::Pid;
 use nix::errno::Errno;
 use nix::Result;
-use nix::sys::stat;
 
 
 fn send_signal(pid: u32, signal_name: &str) -> Result<()> {
@@ -32,8 +31,8 @@ fn send_signal(pid: u32, signal_name: &str) -> Result<()> {
 fn main() {
     let args = Args::parse();
     let interval = args.interval;
-    let mut failure_count = 0;
-    let mut last_recovery_time = Instant::now();
+    // let mut failure_count = 0;
+    // let mut last_recovery_time = Instant::now();
 
     loop {
         let start = SystemTime::now();
@@ -43,7 +42,7 @@ fn main() {
 
         // when command failed
         if !output.status.success() {
-            failure_count += 1;
+            // failure_count += 1;
             if args.failure_script.is_some(){
                 println!("failure_script is wrote!!");
                 let failure_env = FailureScriptEnv{
@@ -65,7 +64,7 @@ fn main() {
                 }
             }
         } else {
-            failure_count = 0;
+            // failure_count = 0;
 
         }
 
