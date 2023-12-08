@@ -7,18 +7,14 @@ use clap::Parser;
 use crate::cli::Args;
 use crate::executor::{execute_command, execute_failure_script, FailureScriptEnv};
 use libc;
-use crate::stat::Mode;
 
+use nix::sys::signal::{self, Signal};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH, Instant};
-use nix::sys::signal::{Signal, self};
+// use nix::sys::signal::{Signal, self};
 use nix::unistd::Pid;
 use nix::errno::Errno;
 use nix::Result;
-use std::path::Path;
-use nix::unistd::mkfifo;
-use std::fs;
-use std::io::Write;
 use nix::sys::stat;
 
 
@@ -32,20 +28,12 @@ fn send_signal(pid: u32, signal_name: &str) -> Result<()> {
     signal::kill(Pid::from_raw(pid as i32), signal)
 }
 
+
 fn main() {
     let args = Args::parse();
     let interval = args.interval;
     let mut failure_count = 0;
     let mut last_recovery_time = Instant::now();
-
-    let pipe_path = Path::new("/tmp/rust_pipe");
-    let _ = fs::remove_file(pipe_path);
-     // Create a named pipe (FIFO)
-    let mode = Mode::from_bits_truncate(libc::S_IRUSR  | libc::S_IWUSR | libc::S_IRGRP  | libc::S_IROTH );
-    match mkfifo(pipe_path, mode) {
-        Ok(()) => println!("Named pipe created successfully at {:?}", pipe_path),
-        Err(e) => eprintln!("Failed to create named pipe: {}", e),
-    }
 
     loop {
         let start = SystemTime::now();
@@ -64,7 +52,7 @@ fn main() {
                     interval,
                     fail_pid,
                 };
-                execute_failure_script(pipe_path, "./failure.sh", failure_env);
+                execute_failure_script( "./failure.sh", failure_env);
             }
 
             if args.pid.is_some(){
