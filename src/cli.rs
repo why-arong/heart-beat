@@ -1,20 +1,21 @@
-use clap::Parser;
+use clap::{Parser, ArgGroup};
 
 
 /// Simple heartbeat command-line app
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
+#[clap(group(ArgGroup::new("execution").required(true).args(&["script", "command"])))]
 pub struct Args {
     /// Interval in seconds between checks
     #[clap(short, long, value_parser)]
     pub interval: u64,
 
     /// Shell script to execute
-    #[clap(short = 's', long, value_parser)]
+    #[clap(short = 's', long, value_parser, group = "execution")]
     pub script: Option<String>,
 
     /// The command to execute
-    #[clap(value_parser, trailing_var_arg = true)]
+    #[clap(value_parser, trailing_var_arg = true, group = "execution")]
     pub command: Vec<String>,
 
     #[clap(long, value_parser)]

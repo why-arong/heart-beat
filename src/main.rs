@@ -6,22 +6,21 @@ use clap::Parser;
 
 use crate::cli::Args;
 use crate::executor::{execute_command, execute_failure_script, FailureScriptEnv};
-// use libc;
-use nix::sys::signal::*;
-use nix::sys::signal::{self, Signal};
 
-use std::time::{SystemTime, UNIX_EPOCH};
-// use nix::sys::signal::{Signal, self};
+use nix::sys::signal::*;
+use nix::sys::signal;
 use nix::unistd::Pid;
 use nix::errno::Errno;
 use nix::Result;
 use nix::unistd::alarm;
+
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+
 
 static ALARM_RECEIVED: AtomicBool = AtomicBool::new(false);
 
 extern fn signal_handler(_: nix::libc::c_int) { 
-    println!("Alarm signal received");
     ALARM_RECEIVED.store(true, Ordering::SeqCst);
 }
 
@@ -54,6 +53,7 @@ fn main() {
     let mut old_mask = SigSet::empty();
     let mut mask = SigSet::empty();
     mask.add(Signal::SIGALRM);
+
     loop {
         // Block SIGALRM
         let _ = sigprocmask(SigmaskHow::SIG_BLOCK, Some(&mask), Some(&mut old_mask));
