@@ -19,7 +19,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 
 static ALARM_RECEIVED: AtomicBool = AtomicBool::new(false);
-
 extern fn signal_handler(_: nix::libc::c_int) { 
     ALARM_RECEIVED.store(true, Ordering::SeqCst);
 }
@@ -70,14 +69,13 @@ fn main() {
             if !output.status.success() {
                 // failure_count += 1;
                 if args.failure_script.is_some(){
-                    println!("failure_script is wrote!!");
                     let failure_env = FailureScriptEnv{
                         exit_code,
                         unix_time,
                         interval,
                         fail_pid,
                     };
-                    execute_failure_script( "./failure.sh", failure_env);
+                    execute_failure_script(&args, failure_env);
                 }
 
                 if args.pid.is_some(){

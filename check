@@ -1,3 +1,2 @@
 #!/bin/bash
-output=$(curl -sf "http://sws-container:8080/")
-# echo "Command output: $output"
+output=$(curl -sf "http://127.0.0.1:8080/")

@@ -37,16 +37,20 @@ pub fn is_executable<P: AsRef<Path>>(path: P) -> bool {
         .unwrap_or(false)
 }
 
-pub fn execute_failure_script(script_path: &str, envs: FailureScriptEnv) {
-    if !is_executable(script_path) {
-        eprintln!("Error: The script '{}' is not executable.", script_path);
-        std::process::exit(1);
+pub fn execute_failure_script(args: &super::cli::Args, envs: FailureScriptEnv) {
+    if let Some(script_path) = args.failure_script.as_ref().map(|s| AsRef::<Path>::as_ref(s)) {
+        if !is_executable(script_path) {
+            eprintln!("Error: The script '{}' is not executable.", script_path.display());
+            std::process::exit(1);
+        }
+        Command::new(script_path)
+            .env("HEAT_FAIL_CODE", envs.exit_code.to_string())
+            .env("HEAT_FAIL_TIME", envs.unix_time.to_string())
+            .env("HEAT_FAIL_INTERVAL", envs.interval.to_string())
+            .env("HEAT_FAIL_PID", envs.fail_pid.to_string())
+            .spawn()
+            .expect("Failed to execute failure.sh");
+    } else {
+        eprintln!("No failure script provided");
     }
-    Command::new(script_path)
-                .env("HEAT_FAIL_CODE", envs.exit_code.to_string())
-                .env("HEAT_FAIL_TIME", envs.unix_time.to_string())
-                .env("HEAT_FAIL_INTERVAL", envs.interval.to_string())
-                .env("HEAT_FAIL_PID", envs.fail_pid.to_string())
-                .spawn()
-                .expect("Failed to execute failure.sh");
 }
